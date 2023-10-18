@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed, onMounted, onUnmounted, onUpdated, ref } from 'vue'
+import { NCollapse, NCollapseItem } from 'naive-ui'
 import MarkdownIt from 'markdown-it'
 import mdKatex from '@traptitech/markdown-it-katex'
 import mila from 'markdown-it-link-attributes'
@@ -9,11 +10,13 @@ import { t } from '@/locales'
 import { copyToClip } from '@/utils/copy'
 
 interface Props {
-  inversion?: boolean
-  error?: boolean
-  text?: string
+  inversion?: boolean // 是否用户
+  error?: boolean // 是否出错
+  text?: string // 文本
   loading?: boolean
-  asRawText?: boolean
+  asRawText?: boolean // 是否文本
+  isKnowLedge?: boolean // 是否知识库对话
+  source?: string[] // 知识库问答中的匹配结果来源 默认3条
 }
 
 const props = defineProps<Props>()
@@ -44,10 +47,11 @@ const wrapClass = computed(() => {
     'min-w-[20px]',
     'rounded-md',
     isMobile.value ? 'p-2' : 'px-3 py-2',
-    props.inversion ? 'bg-[#d2f9d1]' : 'bg-[#f4f6f8]',
+    props.inversion ? 'bg-[#d2f9d1]' : 'bg-[#fff]',
     props.inversion ? 'dark:bg-[#a1dc95]' : 'dark:bg-[#1e1e20]',
     props.inversion ? 'message-request' : 'message-reply',
     { 'text-red-500': props.error },
+    { 'w-full': !props.inversion },
   ]
 })
 
@@ -56,6 +60,17 @@ const text = computed(() => {
   if (!props.asRawText)
     return mdi.render(value)
   return value
+})
+
+const result = computed(() => {
+  const value = props.source ?? []
+  const newVal: any[] = []
+  if (!props.asRawText) {
+    value.forEach((item) => {
+      return newVal.push(mdi.render(item))
+    })
+  }
+  return newVal
 })
 
 function highlightBlock(str: string, lang?: string) {
@@ -111,9 +126,19 @@ onUnmounted(() => {
         <div v-else class="whitespace-pre-wrap" v-text="text" />
       </div>
       <div v-else class="whitespace-pre-wrap" v-text="text" />
-      <template v-if="loading">
-        <span class="dark:text-white w-[4px] h-[20px] block animate-blink" />
-      </template>
+      <!-- <template> -->
+      <span v-if="loading" class="dark:text-white w-[4px] h-[20px] block animate-blink" />
+      <!-- </template> -->
+    </div>
+    <!-- 展示知识库对话的匹配结果 -->
+    <div v-if="!inversion && isKnowLedge && source?.length" class="border_collapse">
+      <NCollapse arrow-placement="right">
+        <NCollapseItem title="知识库匹配结果" name="1">
+          <div v-for="(item, index) in result" :key="index" class="flex flex-row items-center mb-4">
+            <div v-if="!asRawText" class="markdown-body" v-html="item" />
+          </div>
+        </NCollapseItem>
+      </NCollapse>
     </div>
   </div>
 </template>

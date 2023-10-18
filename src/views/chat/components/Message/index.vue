@@ -15,6 +15,8 @@ interface Props {
   inversion?: boolean
   error?: boolean
   loading?: boolean
+  knowledge?: boolean
+  source?: string[]
 }
 
 interface Emit {
@@ -98,6 +100,7 @@ async function handleCopy() {
     class="flex w-full mb-6 overflow-hidden"
     :class="[{ 'flex-row-reverse': inversion }]"
   >
+    <!-- flex-row-reverse -->
     <div
       class="flex items-center justify-center flex-shrink-0 h-8 overflow-hidden rounded-full basis-8"
       :class="[inversion ? 'ml-2' : 'mr-2']"
@@ -105,12 +108,12 @@ async function handleCopy() {
       <!-- 头像模块 -->
       <AvatarComponent :image="inversion" />
     </div>
-    <div class="overflow-hidden text-sm " :class="[inversion ? 'items-end' : 'items-start']">
-      <p class="text-xs text-[#b4bbc4]" :class="[inversion ? 'text-right' : 'text-left']">
+    <div class="overflow-hidden text-sm w-full" :class="[inversion ? 'items-end' : 'items-start']">
+      <!-- <p class="text-xs text-[#b4bbc4]" :class="[inversion ? 'text-right' : 'text-left']">
         {{ dateTime }}
-      </p>
+      </p> -->
       <div
-        class="flex items-end gap-1 mt-2"
+        class="flex items-end gap-1"
         :class="[inversion ? 'flex-row-reverse' : 'flex-row']"
       >
         <!-- 对话内容 -->
@@ -121,8 +124,10 @@ async function handleCopy() {
           :text="text"
           :loading="loading"
           :as-raw-text="asRawText"
+          :is-know-ledge="knowledge"
+          :source="source"
         />
-        <div class="flex flex-col">
+        <!-- <div class="flex flex-col">
           <button
             v-if="!inversion"
             class="mb-2 transition text-neutral-300 hover:text-neutral-800 dark:hover:text-neutral-300"
@@ -140,7 +145,13 @@ async function handleCopy() {
               <SvgIcon icon="ri:more-2-fill" />
             </button>
           </NDropdown>
-        </div>
+        </div> -->
+      </div>
+      <div v-if="!inversion " class="flex items-center justify-left cursor-pointer mt-1 ml-3" @click="handleRegenerate">
+        <SvgIcon icon="lucide:rotate-ccw" class="text-[#2080f0] font-bold" />
+        <button class="text-xs text-[#2080f0] font-sans font-bold">
+          重新生成
+        </button>
       </div>
     </div>
   </div>

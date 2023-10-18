@@ -231,7 +231,7 @@ const rowProps = (row: RowData) => {
     style: 'cursor: pointer; background: red;',
     onClick: () => {
       pickDoc.value = row.title
-      message.info(pickDoc.value)
+      message.info(`已选中${pickDoc.value}`)
     },
   }
 }
@@ -381,8 +381,8 @@ onMounted(() => {
                       DOCX, EPUB, ODT, PPT, PPTX, TSV, HTM
                     </NP>
                   </div>
-                  <NButton ghost size="tiny" type="info">
-                    Browse file
+                  <NButton style="background-color: #fff;">
+                    Browse files
                   </NButton>
                 </NUploadDragger>
               </NUpload>
@@ -408,7 +408,7 @@ onMounted(() => {
                 </NCollapseItem>
               </NCollapse>
             </div>
-            <NButton :disabled="!fileListLength" style="margin-top: 20px;" @click="myUpload">
+            <NButton :disabled="!fileListLength" style="margin-top: 20px;padding: 12px 24px;" @click="myUpload">
               添加文件到知识库
             </NButton>
           </div>
@@ -425,7 +425,7 @@ onMounted(() => {
             </NTag>
             <NDataTable striped :columns="columns" :data="tableData" :row-props="rowProps" style="margin-top: 15px;" />
             <div class="flex justify-between mt-6">
-              <NButton :disabled="!pickDoc" @click="download">
+              <NButton :disabled="!pickDoc" style="padding: 12px 24px;" @click="download">
                 下载选中文档
               </NButton>
               <!-- <NButton :disabled="!pickDoc">
@@ -434,17 +434,17 @@ onMounted(() => {
               <NButton :disabled="!pickDoc">
                 从向量库删除
               </NButton> -->
-              <NButton type="info" @click="delDoc">
+              <NButton type="info" style="padding: 12px 24px;" @click="delDoc">
                 从知识库中删除
               </NButton>
             </div>
           </div>
           <NDivider />
           <div class="flex between">
-            <NButton type="info">
+            <NButton type="info" style="padding: 12px 24px;">
               依据源文件重建向量库
             </NButton>
-            <NButton @click="delBase">
+            <NButton style="padding: 12px 24px;" @click="delBase">
               删除知识库
             </NButton>
           </div>
@@ -478,7 +478,7 @@ onMounted(() => {
   }
 
   :deep(.n-button) {
-    padding: 12px 24px;
+    padding: 0 8px;
     height: auto;
     border-radius: 0.5rem;
   }

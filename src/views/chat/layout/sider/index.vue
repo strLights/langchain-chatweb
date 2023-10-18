@@ -3,8 +3,8 @@ import type { CSSProperties } from 'vue'
 import { computed, ref, watch, onMounted } from 'vue'
 import { router } from '@/router'
 import { NButton, NLayoutSider, NRadioGroup, NUpload, useMessage, NSelect, NCollapse, NCollapseItem, NInputNumber, NSlider } from 'naive-ui'
-import List from './List.vue'
-import step from './step.vue'
+// import List from './List.vue'
+// import step from './step.vue'
 import filelist from './filelist.vue'
 import Footer from './Footer.vue'
 import { useAppStore, useChatStore } from '@/store'
@@ -22,6 +22,7 @@ const chatType = ref('LLM')
 const chatBase = ref('samples')
 const menu = ref(1)
 const temperature = ref(0.7)
+const score = ref(1.00)
 const chatSteps = ref(3)
 const marks = {
   0: '0.00',
@@ -107,11 +108,12 @@ const mobileSafeArea = computed(() => {
 })
 //
 const siderBtn = (param) => {
-  if(param === 1) {
+  if (param === 1) {
     router.push({
       path: '/',
     })
-  } else {
+  }
+  else {
     router.push({
       path: '/knowledge/base',
     })
@@ -130,21 +132,21 @@ watch(
 )
 
 const getKnowledgeBase = async () => {
-  getKnowledge().then(res => {
+  getKnowledge().then((res) => {
     const { code, msg, data } = res.data
     if (code === 200) {
       // console.log(data)
-      data.forEach(ele => {
+      data.forEach((ele) => {
         knowledgeList.value.push({
           label: ele,
           value: ele,
         })
       })
-    } else {
+    }
+    else {
       message.error(msg)
     }
-  }).catch(err => {
-    console.log(err)
+  }).catch((err) => {
     message.error(err)
   })
 }
@@ -160,10 +162,11 @@ onMounted(() => {
 </script>
 
 <template>
-  <NLayoutSider :collapsed="collapsed" :collapsed-width="0" style="overflow: hidden;" :width="320" :show-trigger="isMobile ? false : 'arrow-circle'"
+  <NLayoutSider :collapsed="collapsed" :collapsed-width="0" style="overflow: hidden;" :width="340" :show-trigger="isMobile ? false : 'arrow-circle'"
     collapse-mode="transform" position="absolute" bordered :style="getMobileClass"
-    @update-collapsed="handleUpdateCollapsed">
-    <Footer style="padding: 3rem 1rem;" />
+    @update-collapsed="handleUpdateCollapsed"
+  >
+    <Footer style="padding: 5rem 1rem 1rem;" />
     <div class="flex flex-col h-full " style="padding: 1rem;" :style="mobileSafeArea">
       <main class="flex flex-col flex-1 min-h-0">
         <div class="flex-col flex justify-between">
@@ -179,7 +182,8 @@ onMounted(() => {
                 style="border: none; font-size: 1rem; font-weight: 800; padding: 10px 14px;"
                 :style="{ backgroundColor: song.value === menu ? '#fff' : 'transparent', borderRadius: song.value === menu ? '10px' : '0', color: song.value === menu ? '#000' : '#333', fontWeight: song.value === menu ? '800' : '300' }"
                 :value="song.value"
-                @click="siderBtn(song.value)">
+                @click="siderBtn(song.value)"
+              >
                 <template #icon>
                   <SvgIcon :icon="song.icon" />
                 </template>
@@ -191,21 +195,6 @@ onMounted(() => {
               </button> -->
             </div>
           </NRadioGroup>
-        </div>
-        <!-- 知识库界面 -->
-        <div v-if="menu === 2">
-          <div class="p-4">
-            <NUpload action="http://127.0.0.1:1002/api/file" :headers="{
-              'naive-info': 'hello!',
-            }" :data="{ 'naive-data': 'cool! naive!' }">
-              <NButton block>
-                文件上传
-              </NButton>
-            </NUpload>
-          </div>
-          <div class="p-2 flex-1 min-h-0 pb-4 overflow-hidden">
-            <filelist />
-          </div>
         </div>
         <!-- 会话界面 -->
         <div v-if="menu === 1">
@@ -220,21 +209,23 @@ onMounted(() => {
             <List />
           </div> -->
         </div>
-        <div class="params" v-if="menu === 1">
+        <div v-if="menu === 1" class="params">
           <div class="p-2">
             <label>Temperature:</label>
             <NSlider
+              v-model:value="temperature"
               style="margin-top: 2rem;--n-fill-color: rgb(22,93,255);--n-fill-color-hover: rgb(22,93,255);--n-dot-border-active: 2px solid rgb(22,93,255)"
-              v-model:value="temperature" :step="0.05" :min="0.00" :max="1.00" :marks="marks" show-tooltip />
+              :step="0.05" :min="0.00" :max="1.00" :marks="marks" show-tooltip
+            />
           </div>
           <div class="p-2">
             <label for="">历史对话轮数：</label>
-            <NInputNumber style="margin-top: 0.5rem;" v-model:value="chatSteps" :max="10" />
+            <NInputNumber v-model:value="chatSteps" style="margin-top: 0.5rem;" :max="10" />
           </div>
         </div>
         <!-- 知识库对话 -->
-        <div v-if="chatType === 'knowledge' && menu === 1">
-          <div class="knowledge-setting">
+        <div v-if="chatType === 'knowledge' && menu === 1" class="p-2">
+          <div class="knowledge-setting border">
             <NCollapse arrow-placement="right" :default-expanded-names="['1']">
               <NCollapseItem title="知识库配置" name="1">
                 <div>
@@ -249,8 +240,10 @@ onMounted(() => {
                   <div style="margin-top: 0.5rem;">
                     <label>知识匹配分数阈值：</label>
                     <NSlider
+                      v-model:value="score"
                       style="margin-top: 2rem;--n-fill-color: rgb(22,93,255);--n-fill-color-hover: rgb(22,93,255);--n-dot-border-active: 2px solid rgb(22,93,255)"
-                      v-model:value="temperature" :step="0.05" :min="0.00" :max="1.00" :marks="marks" show-tooltip />
+                      :step="0.05" :min="0.00" :max="1.00" :marks="marks" show-tooltip
+                    />
                   </div>
                 </div>
               </NCollapseItem>
@@ -300,6 +293,13 @@ onMounted(() => {
   padding: 1rem 0.5rem;
 }
 
+.border {
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin-top: 20px;
+}
+
 :deep(.n-slider .n-slider-handles .n-slider-handle-wrapper .n-slider-handle) {
   width: 12px;
   height: 12px;
@@ -326,5 +326,8 @@ onMounted(() => {
 
 :deep(.n-slider-handle-indicator.n-slider-handle-indicator--top) {
   margin-bottom: 0 !important;
+}
+:deep(.n-button) {
+  padding: 0 8px;
 }
 </style>

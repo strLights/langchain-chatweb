@@ -84,6 +84,7 @@ const LlmData = ref([
   },
 ])
 const pickLlm = ref('')
+const resultData = ref([])
 const changeModel = (val: any) => {
   // console.log(val)
   show.value = true
@@ -156,8 +157,7 @@ function handleSubmit() {
 async function onConversation() {
   const message = prompt.value
   if (usingContext.value) {
-    for (let i = 0; i < dataSources.value.length; i = i + 2) // 获取历史记录
-    {
+    for (let i = 0; i < dataSources.value.length; i = i + 2) { // 获取历史记录
       if (i % 2 === 1) {
         history.value.push({
           role: 'assistant',
@@ -184,6 +184,7 @@ async function onConversation() {
     {
       dateTime: new Date().toLocaleString(),
       text: message,
+      knowledge: false,
       inversion: true,
       error: false,
       conversationOptions: null,
@@ -207,6 +208,7 @@ async function onConversation() {
       dateTime: new Date().toLocaleString(),
       text: '',
       loading: true,
+      knowledge: false,
       inversion: false,
       error: false,
       conversationOptions: null,
@@ -253,13 +255,36 @@ async function onConversation() {
           if (done)
             break
           // value = value?.replace('undefined', '')
-          console.log('received data -', JSON.parse(value))
-          result += JSON.parse(value).answer
+          console.log('knowledge data -', JSON.parse(value))
+          if (JSON.parse(value).answer)
+            result += JSON.parse(value).answer
+          resultData.value = JSON.parse(value).docs
           // output.value += value?.replace('undefined', '')
+          try {
+            updateChat(
+              +uuid,
+              dataSources.value.length - 1,
+              {
+                dateTime: new Date().toLocaleString(),
+                text: lastText + (result ?? ''),
+                source: resultData.value,
+                knowledge: true,
+                inversion: false,
+                error: false,
+                loading: false,
+                conversationOptions: null,
+                requestOptions: { prompt: message, options: { ...options } },
+              },
+            )
+          }
+          catch (error: any) {}
         }
       }
       // else if (localStorage.getItem('chatMode') === 'LLM' || null) {
       else {
+        const resData = {
+          text: '',
+        }
         const response = await fetch('api/chat/chat', {
           method: 'POST',
           headers: {
@@ -275,28 +300,47 @@ async function onConversation() {
           if (done)
             break
           // value = value?.replace('undefined', '')
-          // console.log('received data -', value)
-          result += value
+          console.log('received data -', value)
+          resData.text += value
+          // resdata = value
+          // resData = JSON.parse(resData)
           // output.value += value?.replace('undefined', '')
+          try {
+            updateChat(
+              +uuid,
+              dataSources.value.length - 1,
+              {
+                dateTime: new Date().toLocaleString(),
+                text: lastText + (resData.text ?? ''),
+                knowledge: false,
+                inversion: false,
+                error: false,
+                loading: false,
+                conversationOptions: null,
+                requestOptions: { prompt: message, options: { ...options } },
+              },
+            )
+          }
+          catch (error: any) {}
         }
       }
 
       // const res = await chat(data)
       // const result = active.value ? `${res.data.response.text}\n\n数据来源：\n\n[${res.data.url.split('/static/')[1]}](http://127.0.0.1:3000${res.data.url})` : res.data.text
-      updateChat(
-        +uuid,
-        dataSources.value.length - 1,
-        {
-          dateTime: new Date().toLocaleString(),
-          // text: lastText + (result ?? ''),
-          text: result ?? '',
-          inversion: false,
-          error: false,
-          loading: false,
-          conversationOptions: null,
-          requestOptions: { prompt: message, options: { ...options } },
-        },
-      )
+      // updateChat(
+      //   +uuid,
+      //   dataSources.value.length - 1,
+      //   {
+      //     dateTime: new Date().toLocaleString(),
+      //     text: lastText + (resdata ?? ''),
+      //     // text: result ?? '',
+      //     inversion: false,
+      //     error: false,
+      //     loading: false,
+      //     conversationOptions: null,
+      //     requestOptions: { prompt: message, options: { ...options } },
+      //   },
+      // )
       scrollToBottomIfAtBottom()
       loading.value = false
       /* await fetchChatAPIProcess<Chat.ConversationResponse>({
@@ -383,6 +427,7 @@ async function onConversation() {
         dateTime: new Date().toLocaleString(),
         text: errorMessage,
         inversion: false,
+        knowledge: false,
         error: true,
         loading: false,
         conversationOptions: null,
@@ -560,7 +605,7 @@ async function onConversation2() {
   }
 }
 
-/* async function onRegenerate(index: number) {
+async function handleRegenerate(index: number) {
   if (loading.value)
     return
 
@@ -568,7 +613,7 @@ async function onConversation2() {
 
   const { requestOptions } = dataSources.value[index]
 
-  let message = requestOptions?.prompt ?? ''
+  const message = requestOptions?.prompt ?? ''
 
   let options: Chat.ConversationRequest = {}
 
@@ -584,6 +629,7 @@ async function onConversation2() {
       dateTime: new Date().toLocaleString(),
       text: '',
       inversion: false,
+      knowledge: false,
       error: false,
       loading: true,
       conversationOptions: null,
@@ -592,50 +638,117 @@ async function onConversation2() {
   )
 
   try {
-    let lastText = ''
+    const lastText = ''
+    const data = {
+      query: message,
+      history: history.value,
+      model_name: pickLlm.value,
+      stream: true,
+      temperature: 0.7,
+    }
+    const baseData = {
+      query: message,
+      knowledge_base_name: localStorage.getItem('knowledgeBase'),
+      top_k: 3,
+      score_threshold: 1,
+      history: [],
+      model_name: pickLlm.value,
+      stream: true,
+      temperature: 0.7,
+      local_doc_url: false,
+    }
     const fetchChatAPIOnce = async () => {
-      await fetchChatAPIProcess<Chat.ConversationResponse>({
-        prompt: message,
-        options,
-        signal: controller.signal,
-        onDownloadProgress: ({ event }) => {
-          const xhr = event.target
-          const { responseText } = xhr
-          // Always process the final line
-          const lastIndex = responseText.lastIndexOf('\n', responseText.length - 2)
-          let chunk = responseText
-          if (lastIndex !== -1)
-            chunk = responseText.substring(lastIndex)
+      let result = ''
+      if (localStorage.getItem('chatMode') === 'knowledge') {
+        const response = await fetch('api/chat/knowledge_base_chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(baseData),
+        })
+        if (!response.body)
+          return
+        const reader = response.body.pipeThrough(new TextDecoderStream()).getReader()
+        while (true) {
+          const { value, done } = await reader.read()
+          if (done)
+            break
+          // value = value?.replace('undefined', '')
+          console.log('knowledge data -', JSON.parse(value))
+          if (JSON.parse(value).answer)
+            result += JSON.parse(value).answer
+          resultData.value = JSON.parse(value).docs
+          // output.value += value?.replace('undefined', '')
           try {
-            const data = JSON.parse(chunk)
             updateChat(
               +uuid,
               index,
               {
                 dateTime: new Date().toLocaleString(),
-                text: lastText + (data.text ?? ''),
+                text: lastText + (result ?? ''),
+                source: resultData.value,
+                knowledge: true,
                 inversion: false,
                 error: false,
-                loading: true,
-                conversationOptions: { conversationId: data.conversationId, parentMessageId: data.id },
+                loading: false,
+                conversationOptions: null,
                 requestOptions: { prompt: message, options: { ...options } },
               },
             )
-
-            if (openLongReply && data.detail.choices[0].finish_reason === 'length') {
-              options.parentMessageId = data.id
-              lastText = data.text
-              message = ''
-              return fetchChatAPIOnce()
-            }
           }
-          catch (error) {
-            //
+          catch (error: any) {}
+        }
+      }
+      // else if (localStorage.getItem('chatMode') === 'LLM' || null) {
+      else {
+        const resData = {
+          text: '',
+        }
+        const response = await fetch('api/chat/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data),
+        })
+        if (!response.body)
+          return
+        const reader = response.body.pipeThrough(new TextDecoderStream()).getReader()
+        while (true) {
+          const { value, done } = await reader.read()
+          if (done)
+            break
+          // value = value?.replace('undefined', '')
+          console.log('received data -', value)
+          resData.text += value
+          // resdata = value
+          // resData = JSON.parse(resData)
+          // output.value += value?.replace('undefined', '')
+          try {
+            updateChat(
+              +uuid,
+              index,
+              {
+                dateTime: new Date().toLocaleString(),
+                text: lastText + (resData.text ?? ''),
+                knowledge: false,
+                inversion: false,
+                error: false,
+                loading: false,
+                conversationOptions: null,
+                requestOptions: { prompt: message, options: { ...options } },
+              },
+            )
           }
-        },
-      })
+          catch (error: any) {}
+        }
+      }
+      scrollToBottomIfAtBottom()
+      loading.value = false
       updateChatSome(+uuid, index, { loading: false })
     }
+
     await fetchChatAPIOnce()
   }
   catch (error: any) {
@@ -649,27 +762,45 @@ async function onConversation2() {
       )
       return
     }
-
     const errorMessage = error?.message ?? t('common.wrong')
-
-    updateChat(
-      +uuid,
-      index,
-      {
-        dateTime: new Date().toLocaleString(),
-        text: errorMessage,
-        inversion: false,
-        error: true,
-        loading: false,
-        conversationOptions: null,
-        requestOptions: { prompt: message, options: { ...options } },
-      },
-    )
+    if (localStorage.getItem('chatMode') === 'knowledge') {
+      updateChat(
+        +uuid,
+        index,
+        {
+          dateTime: new Date().toLocaleString(),
+          text: errorMessage,
+          inversion: false,
+          knowledge: true,
+          source: [],
+          error: true,
+          loading: false,
+          conversationOptions: null,
+          requestOptions: { prompt: message, options: { ...options } },
+        },
+      )
+    }
+    else {
+      updateChat(
+        +uuid,
+        index,
+        {
+          dateTime: new Date().toLocaleString(),
+          text: errorMessage,
+          inversion: false,
+          knowledge: false,
+          error: true,
+          loading: false,
+          conversationOptions: null,
+          requestOptions: { prompt: message, options: { ...options } },
+        },
+      )
+    }
   }
   finally {
     loading.value = false
   }
-} */
+}
 
 function handleExport() {
   if (loading.value)
@@ -854,8 +985,9 @@ onUnmounted(() => {
             <template v-else>
               <div>
                 <Message
-                  v-for="(item, index) of dataSources" :key="index" :date-time="item.dateTime" :text="item.text"
-                  :inversion="item.inversion" :error="item.error" :loading="item.loading" @delete="handleDelete(index)"
+                  v-for="(item, index) of dataSources" :key="index" :date-time="item.dateTime" :text="item.text" :knowledge="item.knowledge"
+                  :inversion="item.inversion" :source="item.source" :error="item.error" :loading="item.loading" @delete="handleDelete(index)"
+                  @regenerate="handleRegenerate(index)"
                 />
                 <div class="sticky bottom-0 left-0 flex justify-center">
                   <NButton v-if="loading" type="warning" @click="handleStop">
@@ -951,10 +1083,12 @@ onUnmounted(() => {
   flex-direction: column;
   justify-content: space-between;
   padding: 15px 15px 15px 0;
+  width: calc(100% - 200px);
 
   .mainer {
     background-color: rgb(242, 243, 247);
     border-radius: 1rem;
+    height: 100%;
   }
 }
 

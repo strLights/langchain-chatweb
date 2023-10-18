@@ -1,8 +1,9 @@
 declare namespace Chat {
-
 	interface Chat {
 		dateTime: string
 		text: string
+		source?: string[]
+		knowledge: boolean
 		inversion?: boolean
 		error?: boolean
 		loading?: boolean

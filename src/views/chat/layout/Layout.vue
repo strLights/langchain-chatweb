@@ -29,7 +29,7 @@ const getMobileClass = computed(() => {
 const getContainerClass = computed(() => {
   return [
     'h-full',
-    { 'pl-[320px]': !isMobile.value && !collapsed.value },
+    { 'pl-[340px]': !isMobile.value && !collapsed.value },
   ]
 })
 </script>
