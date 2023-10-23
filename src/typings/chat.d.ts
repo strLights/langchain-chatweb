@@ -11,6 +11,18 @@ declare namespace Chat {
 		requestOptions: { prompt: string; options?: ConversationRequest | null }
 	}
 
+	interface ChatParams {
+		chatMode: string
+		temperature: number
+		chatRound: number
+	}
+
+	interface KnowledgeParams {
+		knowledgeBase: string
+		threshold: number
+		matchItems: number
+	}
+
 	interface History {
 		title: string
 		isEdit: boolean

@@ -224,17 +224,17 @@ async function onConversation() {
       history: history.value,
       model_name: pickLlm.value,
       stream: true,
-      temperature: 0.7,
+      temperature: localStorage.getItem('temperature'),
     }
     const baseData = {
       query: message,
       knowledge_base_name: localStorage.getItem('knowledgeBase'),
-      top_k: 3,
-      score_threshold: 1,
-      history: [],
+      top_k: localStorage.getItem('matchItems'),
+      score_threshold: localStorage.getItem('threshold'),
+      history: history.value,
       model_name: pickLlm.value,
       stream: true,
-      temperature: 0.7,
+      temperature: localStorage.getItem('temperature'),
       local_doc_url: false,
     }
     const fetchChatAPIOnce = async () => {
@@ -1002,8 +1002,8 @@ onUnmounted(() => {
           </div>
         </div>
         <footer :class="footerClass">
-          <div class="w-full max-w-screen-xl m-auto">
-            <div class="flex items-center justify-between space-x-2">
+          <div class="w-full max-w-screen-xl m-auto p-4">
+            <div class="flex items-center justify-between space-x-2 ml-8">
               <!-- <NSwitch v-model:value="active">
             <template #checked>
               知识库
@@ -1012,7 +1012,7 @@ onUnmounted(() => {
               知识库&nbsp;&nbsp;
             </template>
           </NSwitch> -->
-              <HoverButton @click="handleClear">
+              <!-- <HoverButton @click="handleClear">
                 <span class="text-xl text-[#4f555e] dark:text-white">
                   <SvgIcon icon="ri:delete-bin-line" />
                 </span>
@@ -1026,17 +1026,17 @@ onUnmounted(() => {
                 <span class="text-xl" :class="{ 'text-[#4b9e5f]': usingContext, 'text-[#a8071a]': !usingContext }">
                   <SvgIcon icon="ri:chat-history-line" />
                 </span>
-              </HoverButton>
+              </HoverButton> -->
               <NAutoComplete v-model:value="prompt" :options="searchOptions" :render-label="renderOption">
                 <template #default="{ handleInput, handleBlur, handleFocus }">
                   <NInput
-                    ref="inputRef" v-model:value="prompt" type="textarea" :placeholder="placeholder"
+                    ref="inputRef" v-model:value="prompt" type="textarea" :placeholder="placeholder" size="large"
                     :autosize="{ minRows: 1, maxRows: isMobile ? 4 : 8 }" @input="handleInput" @focus="handleFocus"
                     @blur="handleBlur" @keypress="handleEnter"
                   />
                 </template>
               </NAutoComplete>
-              <NButton type="primary" :disabled="buttonDisabled" @click="handleSubmit">
+              <NButton type="primary" size="large" :disabled="buttonDisabled" @click="handleSubmit">
                 <template #icon>
                   <span class="dark:text-black">
                     <SvgIcon icon="ri:send-plane-fill" />

@@ -1,16 +1,18 @@
 <script setup lang='ts'>
 import type { CSSProperties } from 'vue'
-import { computed, ref, watch, onMounted } from 'vue'
-import { router } from '@/router'
-import { NButton, NLayoutSider, NRadioGroup, NUpload, useMessage, NSelect, NCollapse, NCollapseItem, NInputNumber, NSlider } from 'naive-ui'
+import { computed, onMounted, ref, watch } from 'vue'
+import { NButton, NCollapse, NCollapseItem, NInputNumber, NLayoutSider, NPopconfirm, NRadioGroup, NSelect, NSlider, useMessage } from 'naive-ui'
 // import List from './List.vue'
 // import step from './step.vue'
-import filelist from './filelist.vue'
 import Footer from './Footer.vue'
+import { storageChatParams, storageKnowledgeParams, clearChatParams, clearKnowledgeParams } from './localstore'
+import { router } from '@/router'
 import { useAppStore, useChatStore } from '@/store'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { SvgIcon } from '@/components/common'
 import { getKnowledge } from '@/api/llm/knowledge_base'
+import { getCurrentDate } from '@/utils/functions'
+import { onUnmounted } from 'vue'
 
 const appStore = useAppStore()
 const chatStore = useChatStore()
@@ -22,6 +24,7 @@ const chatType = ref('LLM')
 const chatBase = ref('samples')
 const menu = ref(1)
 const temperature = ref(0.7)
+const matchItems = ref(3)
 const score = ref(1.00)
 const chatSteps = ref(3)
 const marks = {
@@ -107,7 +110,7 @@ const mobileSafeArea = computed(() => {
   return {}
 })
 //
-const siderBtn = (param) => {
+const siderBtn = (param: number) => {
   if (param === 1) {
     router.push({
       path: '/',
@@ -156,16 +159,70 @@ const storeBase = (val: string) => {
 const storeChatMode = (val: string) => {
   localStorage.setItem('chatMode', val)
 }
+// 导出聊天记录
+function exportData(): void {
+  const date = getCurrentDate()
+  const data: string = localStorage.getItem('chatStorage') || '{}'
+  const jsonString: string = JSON.stringify(JSON.parse(data), null, 2)
+  const blob: Blob = new Blob([jsonString], { type: 'application/json' })
+  const url: string = URL.createObjectURL(blob)
+  const link: HTMLAnchorElement = document.createElement('a')
+  link.href = url
+  link.download = `chat-record${date}.json`
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+}
+// 清空聊天记录
+function clearData(): void {
+  localStorage.removeItem('chatStorage')
+  location.reload()
+}
+function saveChatParams(): void {
+  storageChatParams({
+    chatMode: chatType.value,
+    chatRound: chatSteps.value,
+    temperature: temperature.value,
+  })
+}
+
+function saveKnowledgeParams(): void {
+  storageKnowledgeParams({
+    knowledgeBase: chatBase.value,
+    threshold: score.value,
+    matchItems: matchItems.value,
+  })
+}
+function resetParams(): void {
+  chatType.value = 'LLM'
+  chatBase.value = 'samples'
+  temperature.value = 0.7
+  chatSteps.value = 3
+  matchItems.value = 3
+  score.value = 1.00
+}
 onMounted(() => {
   getKnowledgeBase()
+  resetParams()
+  saveChatParams()
+  saveKnowledgeParams()
 })
+onUnmounted(() => [
+  clearChatParams({
+    chatMode: chatType.value,
+    chatRound: chatSteps.value,
+    temperature: temperature.value,
+  }),
+  clearKnowledgeParams({
+    knowledgeBase: chatBase.value,
+    threshold: matchItems.value,
+    matchItems: score.value,
+  }),
+])
 </script>
 
 <template>
-  <NLayoutSider :collapsed="collapsed" :collapsed-width="0" style="overflow: hidden;" :width="340" :show-trigger="isMobile ? false : 'arrow-circle'"
-    collapse-mode="transform" position="absolute" bordered :style="getMobileClass"
-    @update-collapsed="handleUpdateCollapsed"
-  >
+  <NLayoutSider :width="340" height="100%" position="absolute" style="overflow: hidden;" :style="getMobileClass">
     <Footer style="padding: 5rem 1rem 1rem;" />
     <div class="flex flex-col h-full " style="padding: 1rem;" :style="mobileSafeArea">
       <main class="flex flex-col flex-1 min-h-0">
@@ -178,10 +235,10 @@ onMounted(() => {
               :label="song.label"
             /> -->
             <div v-for="song in songs" :key="song.value" @click="menu = song.value">
-              <NButton text class="side-btn"
+              <NButton
+                text class="side-btn" :value="song.value"
                 style="border: none; font-size: 1rem; font-weight: 800; padding: 10px 14px;"
                 :style="{ backgroundColor: song.value === menu ? '#fff' : 'transparent', borderRadius: song.value === menu ? '10px' : '0', color: song.value === menu ? '#000' : '#333', fontWeight: song.value === menu ? '800' : '300' }"
-                :value="song.value"
                 @click="siderBtn(song.value)"
               >
                 <template #icon>
@@ -200,7 +257,10 @@ onMounted(() => {
         <div v-if="menu === 1">
           <div class="p-2">
             <label>请选择对话模式：</label>
-            <NSelect v-model:value="chatType" style="border-radius: 0.5rem; margin-top: 0.5rem; height: 40px;" :options="options" @update:value="storeChatMode(chatType)" />
+            <NSelect
+              v-model:value="chatType" style="border-radius: 0.5rem; margin-top: 0.5rem; height: 40px;"
+              :options="options" @update:value="storeChatMode(chatType)"
+            />
             <!-- <NButton block @click="handleAdd">
               新建聊天
             </NButton> -->
@@ -231,11 +291,14 @@ onMounted(() => {
                 <div>
                   <div>
                     <label>请选择知识库：</label>
-                    <NSelect v-model:value="chatBase" style="border-radius: 0.5rem;" :options="knowledgeList" @update:value="storeBase(chatBase)" />
+                    <NSelect
+                      v-model:value="chatBase" style="border-radius: 0.5rem;" :options="knowledgeList"
+                      @update:value="storeBase(chatBase)"
+                    />
                   </div>
                   <div style="margin-top: 0.5rem;">
                     <label for="">匹配知识条数：</label>
-                    <NInputNumber v-model:value="chatSteps" :max="10" />
+                    <NInputNumber v-model:value="matchItems" :max="10" />
                   </div>
                   <div style="margin-top: 0.5rem;">
                     <label>知识匹配分数阈值：</label>
@@ -250,11 +313,19 @@ onMounted(() => {
             </NCollapse>
           </div>
         </div>
-        <!-- <div class="p-4">
-          <NButton block @click="show = true">
-            {{ $t('store.siderButton') }}
+        <div v-if="menu === 1" class="p-4 flex justify-between items-center">
+          <NButton block style="width: 48%; --n-border: 1px solid rgb(51, 54, 57);" @click="exportData">
+            导出记录
           </NButton>
-        </div> -->
+          <NPopconfirm @positive-click="clearData">
+            <template #trigger>
+              <NButton type="primary" ghost block style="width: 48%;">
+                清空对话
+              </NButton>
+            </template>
+            是否确认删除对话记录？
+          </NPopconfirm>
+        </div>
       </main>
     </div>
   </NLayoutSider>
@@ -268,6 +339,7 @@ onMounted(() => {
 :deep(.n-layout-sider .n-layout-sider-scroll-container) {
   overflow: hidden !important;
 }
+
 .side-btn {
   width: 100%;
   justify-content: left;
@@ -327,7 +399,12 @@ onMounted(() => {
 :deep(.n-slider-handle-indicator.n-slider-handle-indicator--top) {
   margin-bottom: 0 !important;
 }
+
 :deep(.n-button) {
   padding: 0 8px;
+}
+
+:deep(.n-layout-sider.n-layout-sider--show-content .n-layout-sider-scroll-container) {
+  overflow: hidden !important;
 }
 </style>

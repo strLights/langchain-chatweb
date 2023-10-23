@@ -2,8 +2,9 @@
 import { computed } from 'vue'
 import { NAvatar } from 'naive-ui'
 import { useUserStore } from '@/store'
-import defaultAvatar from '@/assets/avatar.jpg'
+import defaultAvatar from '@/assets/logo.png'
 import { isString } from '@/utils/is'
+import { NImage } from 'naive-ui'
 
 const userStore = useUserStore()
 
@@ -26,9 +27,7 @@ const userInfo = computed(() => userStore.userInfo)
       </template>
     </div> -->
     <div class="flex-1 min-w-0 ml-2">
-      <h1 class="overflow-hidden font-bold  text-3xl text-ellipsis whitespace-nowrap">
-        chatbot
-      </h1>
+      <NImage width="105" preview-disabled :src="defaultAvatar" />
       <p class="overflow-hidden text-xs text-gray-500 text-ellipsis whitespace-nowrap">
         <span
           v-if="isString(userInfo.description) && userInfo.description === ''"
