@@ -27,7 +27,7 @@ const userInfo = computed(() => userStore.userInfo)
       </template>
     </div> -->
     <div class="flex-1 min-w-0 ml-2">
-      <NImage width="105" preview-disabled :src="defaultAvatar" />
+      <NImage width="240" preview-disabled :src="defaultAvatar" />
       <p class="overflow-hidden text-xs text-gray-500 text-ellipsis whitespace-nowrap">
         <span
           v-if="isString(userInfo.description) && userInfo.description === ''"

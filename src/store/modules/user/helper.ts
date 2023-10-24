@@ -1,4 +1,5 @@
 import { ss } from '@/utils/storage'
+import qianwen from '@/assets/qwen.png'
 
 const LOCAL_NAME = 'userStorage'
 
@@ -8,16 +9,26 @@ export interface UserInfo {
   description: string
 }
 
+export interface ModelInfo {
+  logo: string
+  name: string
+}
+
 export interface UserState {
   userInfo: UserInfo
+  modelInfo: ModelInfo
 }
 
 export function defaultSetting(): UserState {
   return {
     userInfo: {
       avatar: 'https://raw.githubusercontent.com/Chanzhaoyu/chatgpt-web/main/src/assets/avatar.jpg',
-      name: 'langchain-chatbot',
-      description: 'Star on <a href="https://github.com/Chanzhaoyu/chatgpt-bot" class="text-blue-500" target="_blank" >GitHub</a>',
+      name: 'langchain-chatweb',
+      description: 'Star on <a href="https://github.com/strLights/langchain-chatweb" class="text-blue-500" target="_blank" >GitHub</a>',
+    },
+    modelInfo: {
+      logo: qianwen,
+      name: 'Qwen-7B-Chat',
     },
   }
 }

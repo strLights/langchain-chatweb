@@ -223,7 +223,7 @@ onUnmounted(() => [
 
 <template>
   <NLayoutSider :width="340" height="100%" position="absolute" style="overflow: hidden;" :style="getMobileClass">
-    <Footer style="padding: 5rem 1rem 1rem;" />
+    <Footer style="padding: 5rem 1rem 0.25rem;" />
     <div class="flex flex-col h-full " style="padding: 1rem;" :style="mobileSafeArea">
       <main class="flex flex-col flex-1 min-h-0">
         <div class="flex-col flex justify-between">

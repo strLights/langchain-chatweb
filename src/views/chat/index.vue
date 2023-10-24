@@ -10,18 +10,25 @@ import { useScroll } from './hooks/useScroll'
 import { useChat } from './hooks/useChat'
 import { useUsingContext } from './hooks/useUsingContext'
 import HeaderComponent from './components/Header/index.vue'
-import { HoverButton, SvgIcon } from '@/components/common'
+import { SvgIcon } from '@/components/common'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
-import { useChatStore, usePromptStore } from '@/store'
+import { useChatStore, usePromptStore, useUserStore } from '@/store'
 import { t } from '@/locales'
 import { chatOpenAI, chatfileOpenai } from '@/api/chat'
 import { changeModels, llmModels } from '@/api/llm/models'
 import { modelsStore } from '@/store/modules/models/models-setting'
+import type { ModelInfo } from '@/store/modules/user/helper'
+import spark from '@/assets/spark-icon.ico'
+import qianwen from '@/assets/qwen.png'
+import chatgpt from '@/assets/chatgpt.png'
+import chatglm from '@/assets/chatglm.png'
+
 let controller = new AbortController()
 
 // const openLongReply = import.meta.env.VITE_GLOB_OPEN_LONG_REPLY === 'true'
 
 const store = modelsStore()
+const userStore = useUserStore()
 const route = useRoute()
 const dialog = useDialog()
 const ms = useMessage()
@@ -61,32 +68,42 @@ const LlmData = ref([
   {
     label: 'chatglm2-6b',
     value: 'chatglm2-6b',
-    icon: '',
+    icon: chatglm,
     status: false,
   },
   {
     label: '通义千问',
     value: 'Qwen-7B-Chat',
-    icon: 'https://img.alicdn.com/imgextra/i4/O1CN01c26iB51UyR3MKMFvk_!!6000000002586-2-tps-124-122.png',
+    icon: qianwen,
     status: false,
   },
   {
     label: '讯飞星火',
     value: 'xinghuo-api',
-    icon: 'https://xinghuo.xfyun.cn/spark-icon.ico',
+    icon: spark,
     status: false,
   },
   {
     label: 'chatgpt3.5',
     value: 'gpt-3.5-turbo',
-    icon: 'https://chat.openai.com/apple-touch-icon.png',
+    icon: chatgpt,
     status: false,
   },
 ])
 const pickLlm = ref('')
 const resultData = ref([])
+
+function updateUserInfo(options: Partial<ModelInfo>) {
+  userStore.updateUserInfo(options)
+}
+
+// function handleReset() {
+//   userStore.resetUserInfo()
+//   ms.success(t('common.success'))
+//   window.location.reload()
+// }
+// 切换模型
 const changeModel = (val: any) => {
-  // console.log(val)
   show.value = true
   const data = {
     model_name: pickLlm.value,
@@ -98,10 +115,13 @@ const changeModel = (val: any) => {
       const { code, msg } = res?.data
       pickLlm.value = val
       localStorage.setItem('pickedModel', pickLlm.value)
-      if (code === 200)
+      if (code === 200) {
         ms.success(msg)
-      else
+        updateUserInfo({ name: val.value, logo: val.icon })
+      }
+      else {
         ms.error(msg)
+      }
       show.value = false
     }).catch((err) => {
       show.value = false
@@ -111,6 +131,7 @@ const changeModel = (val: any) => {
   else {
     pickLlm.value = val.value
     localStorage.setItem('pickedModel', pickLlm.value)
+    updateUserInfo({ name: val.value, logo: val.icon })
     ms.success(`模型已切换成${val.label}`)
     show.value = false
   }
@@ -958,7 +979,7 @@ onUnmounted(() => {
       v-if="isMobile" :using-context="usingContext" @export="handleExport"
       @toggle-using-context="toggleUsingContext"
     />
-    <div class="LLM-list" style="width: 200px; margin-top: 50px;">
+    <div class="LLM-list" style="width: 200px; margin-top: 5rem;">
       <div v-for="(item, index) in LlmData" :key="index" class="btn" :class="{ btn_actived: item.value === pickLlm }">
         <NImage
           v-show="item.icon" width="30" :src="item.icon"
